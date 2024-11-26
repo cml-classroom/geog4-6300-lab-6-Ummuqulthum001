@@ -12,8 +12,12 @@ knitr::opts_chunk$set(echo = TRUE)
 ## Regression
 
 ```{r setup, message=FALSE, warning=FALSE}
+#install.packages("lmtest")
 library(sf)
 library(tidyverse)
+library(tmap)
+library(car)  
+library(lmtest)
 ```
 
 **Overview:**
@@ -48,70 +52,200 @@ We will start by looking at data for 2020.
 **Question 1** _Create histograms for NDVI, max temp., min temp., rain, and population, and water in 2020 as well as elevation. Based on these graphs, assess the normality of these variables._
 
 ```{r}
-#Code goes here.
+print(head(lab6_data))
+ggplot(lab6_data, aes(x = ndvi_00_med)) + 
+  geom_histogram(bins = 30) + 
+  theme_minimal() + 
+  labs(title = "Distribution of NDVI at time 00")
+
+ggplot(lab6_data, aes(x = maxtemp_20_med)) +
+  geom_histogram(bins = 30) +
+  theme_minimal() +
+  labs(title = "Distribution of Maximum Temperature 2020")
+
+ggplot(lab6_data, aes(x = mintemp_20_med)) +
+  geom_histogram(bins = 30) +
+  theme_minimal() +
+  labs(title = "Distribution of Minimum Temperature 2020")
+
+ggplot(lab6_data, aes(x = rain_20_sum)) +
+  geom_histogram(bins = 30) +
+  theme_minimal() +
+  labs(title = "Distribution of Rainfall 2020")
+
+ggplot(lab6_data, aes(x = pop_20)) +
+  geom_histogram(bins = 30) +
+  theme_minimal() +
+  labs(title = "Distribution of Population 2020")
+
+ggplot(lab6_data, aes(x = water_20_pct)) +
+  geom_histogram(bins = 30) +
+  theme_minimal() +
+  labs(title = "Distribution of Water Percentage 2020")
+
+ggplot(lab6_data, aes(x = elev_med)) +
+  geom_histogram(bins = 30) +
+  theme_minimal() +
+  labs(title = "Distribution of Median Elevation")
 ```
 
-{Your assessment of the variables' normality goes here.}
+{Based on the histograms of the of environmental data, it is clear that the variables are not  normally distributed}
 
 **Question 2** _Use tmap to map these same variables using Jenks natural breaks as the classification method. For an extra challenge, use `tmap_arrange` to plot all maps in a single figure._
 
 ```{r}
+#Function to create a map for a specific variable
+create_map <- function(var_name, title) {
+  tm_shape(lab6_data) +
+    tm_polygons(var_name,
+                style = "jenks",
+                palette = "YlOrRd",
+                title = title) +
+    tm_layout(legend.position = c("right", "bottom"),
+              legend.title.size = 1,
+              legend.width = 1)  # Increase legend width
+}
 
+# Create maps for the desired variables
+map_ndvi <- create_map("ndvi_20_med", "NDVI 2020")
+map_temp_max <- create_map("maxtemp_20_med", "Max Temp 2020")
+map_temp_min <- create_map("mintemp_20_med", "Min Temp 2020")
+map_rain <- create_map("rain_20_sum", "Rainfall 2020")
+map_pop <- create_map("pop_20", "Population 2020")
+map_water <- create_map("water_20_pct", "Water Percentage 2020")
+map_elev <- create_map("elev_med", "Elevation")
+
+# Arrange maps in a single figure
+tmap_arrange(map_ndvi, map_temp_max, map_temp_min, map_rain, map_pop, map_water, map_elev, ncol = 3)
 ```
 
 
 **Question 3** _Based on the maps from question 3, summarise major patterns you see in the spatial distribution of these data from any of your variables of interest. How do they appear to be associated with the NDVI variable?_
 
-{Your response here.}
+{The maps show clear patterns across Australia. Areas with more green vegetation (higher NDVI) are mostly along the eastern coast, especially in the north. This is likely because these areas get more rain, which helps plants grow. Temperatures are also interesting. The inland areas, especially in the center and west, tend to be hotter during the day and colder at night. This is because they are far from the coast, making them more extreme.People (population)mostly live along the coast, especially in the southeast. This is probably due to the better climate, easy access to the coast, and historical reasons.Water percentage is highest in coastal areas and around major water bodies, reflecting the distribution of water resources. Elevation shows a general increase towards the eastern highlands, with the highest elevations in the Great Dividing Range. Overall, these maps show how weather, land shape, and human  all work together to shape Australia's landscape.}
 
 **Question 4** _Create univariate models for each of the variables listed in question 1, with NDVI in 2020 as the dependent variable. Print a summary of each model. Write a summary of those results that indicates the direction, magnitude, and significance for each model coefficient._
 
 ```{r}
 
+# Fit univariate linear regression models
+model_maxtemp <- lm(ndvi_20_med ~ maxtemp_20_med, data = lab6_data)
+model_mintemp <- lm(ndvi_20_med ~ mintemp_20_med, data = lab6_data)
+model_rain <- lm(ndvi_20_med ~ rain_20_sum, data = lab6_data)
+model_pop <- lm(ndvi_20_med ~ pop_20, data = lab6_data)
+model_water <- lm(ndvi_20_med ~ water_20_pct, data = lab6_data)
+model_elev <- lm(ndvi_20_med ~ elev_med, data = lab6_data)
+
+# Print model summaries
+summary(model_maxtemp)
+summary(model_mintemp)
+summary(model_rain)
+summary(model_pop)
+summary(model_water)
+summary(model_elev)
 ```
 
-{Discussion here}
+{The model suggests a negative relationship between maximum temperature and NDVI. This means that as maximum temperatures increase, NDVI tends to decrease.The coefficient for maxtemp_20_med is statistically significant (p-value < 0.001), indicating a strong relationship.Similar to the maximum temperature model, the minimum temperature model also shows a negative relationship. Higher minimum temperatures are associated with lower NDVI values.The coefficient for mintemp_20_med is also statistically significant (p-value < 0.001).The rainfall model shows a strong positive relationship between rainfall and NDVI. This is expected, as more rainfall generally leads to healthier vegetation. The coefficient for rain_20_sum is highly significant, indicating a strong relationship.The population model shows a weak positive relationship between population and NDVI. However, the relationship is not as strong as the relationship between NDVI and rainfall. The water percentage model shows a weak negative relationship between water percentage and NDVI. This suggests that areas with higher water coverage tend to have slightly lower NDVI values. However, the relationship is not statistically significant (p-value > 0.05), indicating that the observed relationship could be due to chance. The elevation model shows a weak positive relationship between elevation and NDVI. This suggests that higher elevations tend to have slightly higher NDVI values. This could be due to factors such as cooler temperatures, higher precipitation, or different soil types at higher elevations.The coefficient for elev_med is statistically significant (p-value < 0.001), indicating a significant relationship.While elevation shows a significant positive relationship with NDVI, the relationship between water percentage and NDVI is weak and not statistically significant.}
 
 **Question 5** _Create a multivariate regression model with the variables of interest, choosing EITHER max or min temperature (but not both) You may also choose to leave out any variables that were insignificant in Q4. Use the univariate models as your guide. Call the results._
 
 ```{r}
-#Code goes here
+# Multivariate model with maxtemp_20_med
+multivariate_model <- lm(ndvi_20_med ~ maxtemp_20_med + rain_20_sum + pop_20 + elev_med, data = lab6_data)
+
+# Print model summary
+summary(multivariate_model)
 ```
 
 **Question 6** _Summarize the results of the multivariate model. What are the direction, magnitude, and significance of each coefficient? How did it change from the univariate models you created in Q4 (if at all)? What do the R2 and F-statistic values tell you about overall model fit?_
 
-{Response goes here}
+{Overall Model Fit:R-squared: The R-squared value of 0.6397 indicates that the model explains approximately 63.97% of the variance in NDVI. This suggests a reasonably good fit.The model explains approximately 64% of the variance in NDVI
+F-statistic: The significant F-statistic 315.5 (p-value < 2.2e-16) indicates that at least one of the predictors is significantly related to NDVI.Extremely high F-statistic indicates the model is significantly better than a null model. The very low p-value confirms the model's overall statistical significance.
+Residual Standard Error: 0.0845. Indicates the average deviation of predictions from actual values. Relatively small compared to the scale of NDVI (which ranges from 0 to 1)
+Coefficient Interpretation:
+Maximum Temperature: The negative coefficient for maxtemp_20_med confirms a negative relationship (-0.0117) observed. Higher maximum temperatures are associated with lower NDVI values.For each 1°C increase in maximum temperature, NDVI decreases by 0.0117 units
+Rainfall: The positive coefficient for rain_20_sum reinforces the strong positive relationship (8.469e-07) between rainfall and NDVI. More rainfall leads to higher NDVI values.For each 1mm increase in rainfall, NDVI increases by 0.0000008469 units
+Population: The positive coefficient (2.862e-07) for pop_20 suggests that higher population density is associated with slightly higher NDVI values, potentially due to urban greening efforts or agricultural activities.For each additional person, NDVI increases by 0.0000002862 units
+Elevation: The positive coefficient (0.0001233) for elev_med indicates that higher elevations are associated with higher NDVI values. This could be due to factors like cooler temperatures, higher precipitation, or different soil types at higher elevations. For each 1m increase in elevation, NDVI increases by 0.0001233 units
+Comparison with Univariate Models:The coefficients and significance levels of the predictors in the multivariate model are generally consistent with the univariate models. However, the multivariate model provides a more comprehensive understanding of the relationships between NDVI and the predictors, accounting for the potential confounding effects of other variables.The multivariate model suggests that rainfall is the most important factor influencing NDVI, followed by maximum temperature and elevation. Population also has a significant, albeit weaker, positive impact on NDVI.}
 
 **Question 7** _Use a histogram and a map to assess the normality of residuals and any spatial autocorrelation. Summarise any notable patterns that you see._
 
 ```{r}
-#Code goes here
+# Add residuals to the sf dataframe
+lab6_data$model_residuals <- residuals(multivariate_model)
+
+
+# Create histogram
+ggplot(data = data.frame(residuals = residuals(multivariate_model)), aes(x = residuals)) +
+  geom_histogram(bins = 30, fill = "steelblue", color = "black") +
+  theme_minimal() +
+  labs(title = "Histogram of Model Residuals",
+       x = "Residuals",
+       y = "Count")
+
+# Create map using the verified column name
+tm_shape(lab6_data) +
+  tm_fill(col = "model_residuals",  # using col instead of directly naming
+          style = "jenks",
+          palette = "RdBu",
+          midpoint = 0,
+          title = "Model Residuals") +
+  tm_borders(alpha = 0.2) +
+  tm_layout(title = "Spatial Distribution of Model Residuals",
+            legend.position = c("right", "bottom"))
+
+# Let's also print the first few residual values to verify they exist
+head(lab6_data$model_residuals)
 ```
 
-{Summary goes here}
+{Based on these visualizations, here are the notable patterns in the model residuals:
+1. Distribution of Residuals (from Histogram):The residuals are not normally distributed and has some deviations. There's a notable left skew (negative skew). The bulk of residuals cluster around zero, suggesting generally good model fit
+- There are some outliers, particularly on the negative side (around -0.4 to -0.5)
+- The distribution shows a longer tail on the left side than the right side
+2. Spatial Patterns (from Map): Clear spatial clustering of residuals is evident. Central Australia shows a concentration of negative residuals (red/pink colors), indicating the model over-predicts NDVI in these areas. Coastal areas, particularly in the east and southeast, tend to have positive residuals (blue colors), suggesting the model under-predicts NDVI in these regions. The spatial clustering suggests the presence of spatial autocorrelation in the residuals.The strongest over-predictions (darkest red) appear in scattered locations across the continent, particularly along the edges
+3. Model Performance Implications:
+- The spatial clustering suggests there may be regional factors affecting NDVI that aren't fully captured by the global model. The model tends to systematically over-predict in arid interior regions and under-predict in coastal areas.The presence of spatial autocorrelation indicates that a spatial regression approach might be more appropriate. The residual range (-0.502 to 0.206) suggests moderate prediction errors relative to typical NDVI values
+These patterns suggest that while the model captures broad trends, there are systematic spatial biases that could potentially be addressed through spatial regression techniques or additional variables that capture regional variation.}
 
 **Question 8** _Assess any issues with multicollinearity or heteroskedastity in this model using the techniques shown in class. Run the appropriate tests and explain what their results show you._
 
 ```{r}
-#Code goes here
+# Check for multicollinearity using VIF
+vif(multivariate_model)
+# Test for heteroskedasticity using Breusch-Pagan test
+bptest(multivariate_model)
+# Visual check for heteroskedasticity
+plot(fitted(multivariate_model), residuals(multivariate_model),
+     xlab = "Fitted values", 
+     ylab = "Residuals",
+     main = "Residuals vs Fitted Values")
+abline(h = 0, col = "red", lty = 2)  # Add reference line at y=0
+# Add a smooth line to help identify patterns
+lines(smooth.spline(fitted(multivariate_model), residuals(multivariate_model)), 
+      col = "blue")
 ```
 
-{Interpretation goes here}
+{Based on the diagnostic tests and visualization, the regression model shows mixed results regarding its statistical assumptions. For multicollinearity, the VIF (Variance Inflation Factor) values for all predictors (maxtemp_20_med: 1.099, rain_20_sum: 1.078, pop_20: 1.174, elev_med: 1.009) are well below the common threshold of 5-10, indicating that multicollinearity is not a concern in this model. This means our predictors are relatively independent of each other, allowing for reliable interpretation of individual coefficient effects.
+However, the model shows significant issues with heteroskedasticity, as shown by both statistical testing and visual inspection. The Breusch-Pagan test indicated a highly significant result (BP = 122.21, p < 2.2e-16), strongly rejecting the null hypothesis of homoskedasticity. This is visually confirmed in the Residuals vs Fitted Values plot, which shows clear patterns including a fan-like spread of residuals, a curved pattern in the smoothing line, and a distinctive cluster of negative residuals forming a diagonal line. The uneven spread of residuals across different fitted values further supports the presence of heteroskedasticity.}
 
 **Question 9** _How would you summarise the results of this model in a sentence or two? In addition, looking at the full model and your diagnostics, do you feel this is a model that provides meaningful results? Explain your answer._
 
-```{r}
-Discussion here
-```
+
+{The model reveals that vegetation (NDVI) in Australia is significantly influenced by environmental factors, with maximum temperature having a negative effect while rainfall, population, and elevation show positive relationships, together explaining 64% of NDVI variation. While the model offers meaningful insights into broad vegetation patterns, its reliability is compromised by significant heteroskedasticity and spatial autocorrelation, suggesting that a more specialized spatial regression approach might better capture the geographic variations in these relationships across Australia.}
+
 
 
 **Disclosure of assistance:** _Besides class materials, what other sources of assistance did you use while completing this lab? These can include input from classmates, relevant material identified through web searches (e.g., Stack Overflow), or assistance from ChatGPT or other AI tools. How did these sources support your own learning in completing this lab?_
 
-{Response here.}
+{I used R documentation and Gemini to better understand certain tmap parameter options, particularly for managing the color palette and legend positions in the residuals map. I also consulted the car package documentation to properly interpret VIF values and their thresholds for multicollinearity assessment. When formatting the residuals vs fitted plot. These resources helped deepen my understanding of regression diagnostics and spatial data visualization techniques beyond what was covered in class materials.}
 
 **Lab reflection:** _How do you feel about the work you did on this lab? Was it easy, moderate, or hard? What were the biggest things you learned by completing it?_
 
-{Discussion here.}
+{I found this lab moderately challenging, with some aspects being more difficult than others. The initial data visualization and basic regression analysis steps were straightforward, but the interpretation of diagnostics, particularly understanding the implications of spatial autocorrelation and heteroskedasticity, required deeper thought and understanding.The biggest things I learned from completing this lab were:
+1. The importance of systematic model diagnostics - seeing how residual patterns in both maps and plots can reveal underlying issues with model assumptions
+2. Understanding that a statistically significant model (like this one with R² = 0.64) can still have important limitations due to violated assumptions
+3. The practical application of creating interpretable visualizations, especially when dealing with positive and negative values in spatial data.}
 
 
 **Challenge question**
